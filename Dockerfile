@@ -18,6 +18,11 @@ COPY . .
 
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED 1
+# Set dummy environment variables for build (real values provided at runtime)
+ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
+ENV NEXT_PUBLIC_AMAP_KEY=placeholder-amap-key
+ENV DASHSCOPE_API_KEY=placeholder-dashscope-key
 
 # Build the application
 RUN npm run build
