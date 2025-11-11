@@ -117,6 +117,7 @@ export interface CostBreakdown {
   activities: number
   miscellaneous: number
   total: number
+  breakdown?: string
 }
 
 export async function generateItinerary(request: TripRequest): Promise<Itinerary> {
