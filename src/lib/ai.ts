@@ -85,6 +85,10 @@ export interface AccommodationSuggestion {
   location: string
   pricePerNight: number
   amenities: string[]
+  totalNights?: number
+  totalCost?: number
+  rating?: number
+  description?: string
 }
 
 export interface TransportationInfo {
