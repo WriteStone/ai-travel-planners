@@ -588,9 +588,9 @@ function generateMockItinerary(request: TripRequest): Itinerary {
           restaurant: dayRestaurants[0].name,
           cuisine: dayRestaurants[0].cuisine,
           location: dayRestaurants[0].location,
-          specialties: dayRestaurants[0].specialties,
-          estimatedCost: dayRestaurants[0].avgCost * travelers,
-          description: dayRestaurants[0].description
+          specialties: dayRestaurants[0].specialties ?? [],
+          estimatedCost: (dayRestaurants[0].avgCost ?? 0) * travelers,
+          description: dayRestaurants[0].description ?? ''
         },
         {
           type: 'lunch',
@@ -598,9 +598,9 @@ function generateMockItinerary(request: TripRequest): Itinerary {
           restaurant: dayRestaurants[1].name,
           cuisine: dayRestaurants[1].cuisine,
           location: dayRestaurants[1].location,
-          specialties: dayRestaurants[1].specialties,
-          estimatedCost: dayRestaurants[1].avgCost * travelers,
-          description: dayRestaurants[1].description
+          specialties: dayRestaurants[1].specialties ?? [],
+          estimatedCost: (dayRestaurants[1].avgCost ?? 0) * travelers,
+          description: dayRestaurants[1].description ?? ''
         },
         {
           type: 'dinner',
@@ -608,9 +608,9 @@ function generateMockItinerary(request: TripRequest): Itinerary {
           restaurant: dayRestaurants[2].name,
           cuisine: dayRestaurants[2].cuisine,
           location: dayRestaurants[2].location,
-          specialties: dayRestaurants[2].specialties,
-          estimatedCost: dayRestaurants[2].avgCost * travelers,
-          description: dayRestaurants[2].description
+          specialties: dayRestaurants[2].specialties ?? [],
+          estimatedCost: (dayRestaurants[2].avgCost ?? 0) * travelers,
+          description: dayRestaurants[2].description ?? ''
         },
       ],
     })
