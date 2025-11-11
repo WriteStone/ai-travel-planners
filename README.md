@@ -51,37 +51,66 @@ DASHSCOPE_API_KEY=你的DashScope_API密钥
 
 ### 3. 运行容器
 
-**方式 A - 使用环境变量参数：**
+**推荐方式 - 使用 .env 文件（最简单）：**
 
-```bash
-docker run -d \
-  --name ai-travel-planner \
-  -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key \
-  -e DASHSCOPE_API_KEY=sk-你的dashscope_key \
-  ghcr.io/writestone/ai-travel-planners:latest
+首先创建一个 `.env` 文件，内容如下：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key
+DASHSCOPE_API_KEY=sk-你的dashscope_key
 ```
 
-**方式 B - 使用 .env 文件：**
+然后运行：
 
 ```bash
+# Linux/macOS
 docker run -d \
   --name ai-travel-planner \
   -p 3000:3000 \
   --env-file .env \
   ghcr.io/writestone/ai-travel-planners:latest
+
+# Windows PowerShell
+docker run -d `
+  --name ai-travel-planner `
+  -p 3000:3000 `
+  --env-file .env `
+  ghcr.io/writestone/ai-travel-planners:latest
 ```
 
-**Windows PowerShell 用户：**
+**方式 B - 直接使用环境变量（需要引号）：**
 
+Linux/macOS (bash):
+```bash
+docker run -d \
+  --name ai-travel-planner \
+  -p 3000:3000 \
+  -e "NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co" \
+  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key" \
+  -e "DASHSCOPE_API_KEY=sk-你的dashscope_key" \
+  ghcr.io/writestone/ai-travel-planners:latest
+```
+
+Windows PowerShell:
 ```powershell
 docker run -d `
   --name ai-travel-planner `
   -p 3000:3000 `
-  -e NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co `
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key `
-  -e DASHSCOPE_API_KEY=sk-你的dashscope_key `
+  -e "NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co" `
+  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key" `
+  -e "DASHSCOPE_API_KEY=sk-你的dashscope_key" `
+  ghcr.io/writestone/ai-travel-planners:latest
+```
+
+Windows CMD:
+```cmd
+docker run -d ^
+  --name ai-travel-planner ^
+  -p 3000:3000 ^
+  -e "NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co" ^
+  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key" ^
+  -e "DASHSCOPE_API_KEY=sk-你的dashscope_key" ^
   ghcr.io/writestone/ai-travel-planners:latest
 ```
 
@@ -396,14 +425,23 @@ docker-compose down
 **拉取镜像并运行：**
 
 ```bash
+# 拉取最新镜像
 docker pull ghcr.io/writestone/ai-travel-planners:latest
 
+# 使用 .env 文件运行（推荐）
 docker run -d \
   --name ai-travel-planner \
   -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=your_url \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key \
-  -e DASHSCOPE_API_KEY=your_key \
+  --env-file .env \
+  ghcr.io/writestone/ai-travel-planners:latest
+
+# 或者使用命令行环境变量（需要引号）
+docker run -d \
+  --name ai-travel-planner \
+  -p 3000:3000 \
+  -e "NEXT_PUBLIC_SUPABASE_URL=your_url" \
+  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=your_key" \
+  -e "DASHSCOPE_API_KEY=your_key" \
   ghcr.io/writestone/ai-travel-planners:latest
 ```
 
@@ -413,7 +451,7 @@ docker run -d \
 # 构建镜像
 docker build -t ai-travel-planner .
 
-# 运行容器
+# 运行容器（推荐使用 .env 文件）
 docker run -d \
   --name ai-travel-planner \
   -p 3000:3000 \
@@ -596,21 +634,44 @@ ai-travel-planner/
 
 **最快 5 分钟体验应用：**
 
+**步骤 1：创建 .env 文件**
+
+创建一个名为 `.env` 的文件，内容如下（替换为你的真实密钥）：
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key
+DASHSCOPE_API_KEY=sk-你的密钥
+```
+
+**步骤 2：拉取并运行镜像**
+
 ```bash
-# 1. 拉取镜像
+# 拉取镜像
 docker pull ghcr.io/writestone/ai-travel-planners:latest
 
-# 2. 准备环境变量（替换为你的密钥）
+# 运行容器
 docker run -d \
   --name ai-travel-planner \
   -p 3000:3000 \
-  -e NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key \
-  -e DASHSCOPE_API_KEY=sk-你的密钥 \
+  --env-file .env \
   ghcr.io/writestone/ai-travel-planners:latest
-
-# 3. 使用 Edge 或 Chrome 浏览器访问 http://localhost:3000
 ```
+
+Windows PowerShell:
+```powershell
+docker pull ghcr.io/writestone/ai-travel-planners:latest
+
+docker run -d `
+  --name ai-travel-planner `
+  -p 3000:3000 `
+  --env-file .env `
+  ghcr.io/writestone/ai-travel-planners:latest
+```
+
+**步骤 3：访问应用**
+
+使用 Edge 或 Chrome 浏览器访问：`http://localhost:3000`
 
 **测试流程：**
 1. **打开浏览器**：使用 Microsoft Edge 或 Google Chrome（必需，语音功能依赖）
