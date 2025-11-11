@@ -92,9 +92,22 @@ export interface AccommodationSuggestion {
 }
 
 export interface TransportationInfo {
-  arrival: string
-  departure: string
-  localTransport: string[]
+  arrival: {
+    method: string
+    details: string
+    estimatedCost?: number
+  }
+  departure: {
+    method: string
+    details: string
+    estimatedCost?: number
+  }
+  localTransport: Array<{
+    type: string
+    description: string
+    dailyCost?: number
+    estimatedCost?: number
+  }>
 }
 
 export interface CostBreakdown {
