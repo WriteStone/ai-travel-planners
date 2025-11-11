@@ -361,7 +361,7 @@ export default function Planner() {
               🎤 语音输入（推荐）
             </h2>
             <p className="text-gray-600 mb-4">
-              说出您的旅行需求，例如："我想去日本，5天，预算1万元，喜欢美食和动漫，带孩子"
+              说出您的旅行需求，例如：“我想去日本，5天，预算1万元，喜欢美食和动漫，带孩子”
             </p>
             <div className="flex items-center space-x-4">
               <button
