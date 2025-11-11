@@ -39,3 +39,8 @@ next-env.d.ts
 *.swp
 *.swo
 *~
+
+# Local installation scripts
+install_and_build.ps1
+install_wsl2_for_docker.ps1
+switch_to_windows_containers.ps1
