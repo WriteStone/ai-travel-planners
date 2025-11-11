@@ -1,7 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+// 验证环境变量
+if (!supabaseUrl || supabaseUrl.includes('placeholder')) {
+  console.error('❌ NEXT_PUBLIC_SUPABASE_URL 未正确配置！')
+  console.error('当前值:', supabaseUrl)
+  console.error('请在 .env.local 文件中配置正确的 Supabase URL')
+}
+
+if (!supabaseAnonKey || supabaseAnonKey.includes('placeholder')) {
+  console.error('❌ NEXT_PUBLIC_SUPABASE_ANON_KEY 未正确配置！')
+  console.error('当前值:', supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : '(空)')
+  console.error('请在 .env.local 文件中配置正确的 Supabase Anon Key')
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

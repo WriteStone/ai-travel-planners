@@ -7,182 +7,454 @@
 
 一个基于 AI 的智能旅行规划 Web 应用，通过语音或文字输入旅行需求，自动生成个性化的旅行路线、预算分析和费用管理。
 
-## 🚀 快速开始（使用 Docker）
+---
 
-### 前置要求
-- 已安装 [Docker](https://www.docker.com/get-started)
-- **推荐浏览器**：Microsoft Edge 或 Google Chrome（语音识别功能需要）
-- 准备好以下 API 密钥：
-  - Supabase 项目 URL 和 Anon Key
-  - 阿里云百炼（DashScope）API Key
+## 🚀 5分钟快速部署指南（Docker）
 
-> ⚠️ **重要提示**：本应用的语音识别功能依赖 Web Speech API，目前仅 **Microsoft Edge** 和 **Google Chrome** 浏览器完全支持。Firefox 和 Safari 可能无法使用语音功能。
+### 📋 准备工作
 
-### 1. 拉取 Docker 镜像
+在开始之前，请确保：
+1. ✅ 已安装 [Docker Desktop](https://www.docker.com/get-started)（Windows/Mac）或 Docker Engine（Linux）
+2. ✅ 使用 **Microsoft Edge** 或 **Google Chrome** 浏览器（语音识别必需）
+3. ✅ 准备好两个 API 密钥（下面有详细获取教程）
 
-从 GitHub Container Registry 拉取最新镜像：
+> ⚠️ **重要**：如果你是第一次使用，请完整按照本教程操作，每一步都很重要！
 
-```bash
-docker pull ghcr.io/writestone/ai-travel-planners:latest
-```
+---
 
-### 2. 配置环境变量
+### 📝 第一步：获取 API 密钥（约5分钟）
 
-创建一个 `.env` 文件或准备以下环境变量：
+#### 1.1 获取 Supabase 密钥（免费，必需）
 
-```bash
-# Supabase 配置
-NEXT_PUBLIC_SUPABASE_URL=你的Supabase项目URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=你的Supabase匿名密钥
+**Supabase 是什么？** 一个免费的云数据库服务，用于存储你的旅行计划和用户信息。
 
-# 阿里云百炼 DashScope API
-DASHSCOPE_API_KEY=你的DashScope_API密钥
-```
+**获取步骤：**
 
-**如何获取 API 密钥：**
+1. **访问并注册**
+   - 打开 https://supabase.com
+   - 点击 "Start your project" 
+   - 使用 GitHub 账号登录（或邮箱注册）
 
-- **Supabase**: 
-  1. 访问 [supabase.com](https://supabase.com) 创建免费项目
-  2. 在项目设置 → API 中找到 `URL` 和 `anon public` 密钥
+2. **创建项目**
+   - 点击 "New Project"（新建项目）
+   - 填写信息：
+     - Name（名称）: `travel-planner`（随意填写）
+     - Database Password（数据库密码）: 随便设置一个强密码（记住它）
+     - Region（地区）: 选择 `Southeast Asia (Singapore)` 或 `Northeast Asia (Tokyo)`（亚洲节点速度快）
+   - 点击 "Create new project"
+   - **等待 2 分钟**，项目创建完成
 
-- **DashScope**:
-  1. 访问 [阿里云百炼平台](https://dashscope.aliyun.com/)
-  2. 创建应用并获取 API Key
+3. **配置数据库**
+   - 项目创建完成后，点击左侧菜单的 **SQL Editor**（SQL 编辑器）
+   - 点击 "+ New query"
+   - 复制粘贴以下 SQL 代码到编辑器：
 
-### 3. 运行容器
+   ```sql
+   -- 创建用户配置表
+   create table if not exists public.profiles (
+     id uuid references auth.users on delete cascade primary key,
+     email text,
+     full_name text,
+     avatar_url text,
+     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+   );
 
-**推荐方式 - 使用 .env 文件（最简单）：**
+   -- 启用 RLS（行级安全）
+   alter table public.profiles enable row level security;
 
-首先创建一个 `.env` 文件，内容如下：
+   -- 用户只能查看和修改自己的数据
+   create policy "Users can view own profile" on public.profiles
+     for select using (auth.uid() = id);
+
+   create policy "Users can update own profile" on public.profiles
+     for update using (auth.uid() = id);
+
+   -- 创建旅行计划表
+   create table if not exists public.trips (
+     id uuid default gen_random_uuid() primary key,
+     user_id uuid references auth.users on delete cascade not null,
+     destination text not null,
+     start_date date,
+     end_date date,
+     budget numeric,
+     travelers integer,
+     preferences text[],
+     itinerary jsonb,
+     created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+     updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+   );
+
+   alter table public.trips enable row level security;
+
+   create policy "Users can view own trips" on public.trips
+     for select using (auth.uid() = user_id);
+
+   create policy "Users can insert own trips" on public.trips
+     for insert with check (auth.uid() = user_id);
+
+   create policy "Users can update own trips" on public.trips
+     for update using (auth.uid() = user_id);
+
+   create policy "Users can delete own trips" on public.trips
+     for delete using (auth.uid() = user_id);
+
+   -- 自动创建用户配置的触发器
+   create or replace function public.handle_new_user()
+   returns trigger as $$
+   begin
+     insert into public.profiles (id, email, full_name)
+     values (new.id, new.email, new.raw_user_meta_data->>'full_name');
+     return new;
+   end;
+   $$ language plpgsql security definer;
+
+   create trigger on_auth_user_created
+     after insert on auth.users
+     for each row execute procedure public.handle_new_user();
+   ```
+
+   - 点击右下角 **Run**（运行）按钮
+   - 看到 "Success. No rows returned" 表示成功
+
+4. **获取密钥**
+   - 点击左侧菜单的 **Settings**（设置）→ **API**
+   - 找到并复制以下两项（**非常重要！**）：
+     - **Project URL**：类似 `https://xxxxx.supabase.co`
+     - **anon public**（公开匿名密钥）：以 `eyJ` 开头的一长串字符
+
+   > 💡 提示：可以点击密钥右侧的复制按钮，直接复制到记事本保存。
+
+---
+
+#### 1.2 获取阿里云百炼 API Key（免费额度，必需）
+
+**阿里云百炼是什么？** 阿里云的 AI 大模型服务，用于生成智能旅行规划。
+
+**获取步骤：**
+
+1. **访问并登录**
+   - 打开 https://dashscope.aliyun.com/
+   - 点击右上角 "登录"
+   - 使用阿里云账号登录（没有账号先注册，支持手机号注册）
+
+2. **开通服务**
+   - 登录后会自动进入控制台
+   - 如果提示开通服务，点击 "立即开通"（免费）
+   - 阅读并同意服务协议
+
+3. **创建 API Key**
+   - 在控制台页面，点击右上角头像
+   - 选择 "API-KEY 管理"
+   - 点击 "创建新的 API-KEY"
+   - 复制生成的 API Key（格式：`sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`）
+   - **重要**：密钥只显示一次，请立即保存到记事本！
+
+   > 💰 费用说明：新用户有免费额度（约 100 万 tokens），足够生成几百个旅行计划。
+
+---
+
+### 🐳 第二步：运行 Docker 容器（约2分钟）
+
+#### 2.1 创建配置文件
+
+**Windows 用户：**
+
+1. 在任意位置创建一个文件夹，例如 `C:\ai-travel-planner`
+2. 在该文件夹中，右键点击空白处 → 新建 → 文本文档
+3. 命名为 `.env`（注意：没有文件名，只有扩展名）
+   - 如果 Windows 不显示扩展名：打开文件夹选项 → 查看 → 取消勾选"隐藏已知文件类型的扩展名"
+4. 用记事本打开 `.env` 文件，粘贴以下内容：
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key
-DASHSCOPE_API_KEY=sk-你的dashscope_key
+NEXT_PUBLIC_SUPABASE_URL=在这里粘贴你的Supabase项目URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=在这里粘贴你的Supabase匿名密钥
+DASHSCOPE_API_KEY=在这里粘贴你的阿里云百炼APIKey
 ```
 
-然后运行：
+5. 将上面三行中的中文替换成你在第一步获取的真实密钥
+6. 保存文件（Ctrl+S）
+
+**示例（仅供参考，请使用你自己的密钥）：**
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://abcdefgh.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz...
+DASHSCOPE_API_KEY=sk-a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+```
+
+**Mac/Linux 用户：**
 
 ```bash
-# Linux/macOS
-docker run -d \
-  --name ai-travel-planner \
-  -p 3000:3000 \
-  --env-file .env \
-  ghcr.io/writestone/ai-travel-planners:latest
+# 创建文件夹
+mkdir ~/ai-travel-planner
+cd ~/ai-travel-planner
 
-# Windows PowerShell
+# 创建 .env 文件
+cat > .env << 'EOF'
+NEXT_PUBLIC_SUPABASE_URL=在这里粘贴你的Supabase项目URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=在这里粘贴你的Supabase匿名密钥
+DASHSCOPE_API_KEY=在这里粘贴你的阿里云百炼APIKey
+EOF
+
+# 用文本编辑器打开并修改
+nano .env
+```
+
+---
+
+#### 2.2 启动容器
+
+**Windows 用户（PowerShell 或 CMD）：**
+
+1. 打开 PowerShell（Win+X → Windows PowerShell）
+2. 切换到你刚才创建的文件夹：
+   ```powershell
+   cd C:\ai-travel-planner
+   ```
+
+3. 运行以下命令：
+
+```powershell
+# 拉取最新镜像
+docker pull ghcr.io/writestone/ai-travel-planners:latest
+
+# 启动容器
 docker run -d `
   --name ai-travel-planner `
   -p 3000:3000 `
   --env-file .env `
+  --restart unless-stopped `
   ghcr.io/writestone/ai-travel-planners:latest
 ```
 
-**方式 B - 直接使用环境变量（需要引号）：**
+**Mac/Linux 用户（Terminal）：**
 
-Linux/macOS (bash):
 ```bash
+# 拉取最新镜像
+docker pull ghcr.io/writestone/ai-travel-planners:latest
+
+# 启动容器
 docker run -d \
   --name ai-travel-planner \
   -p 3000:3000 \
-  -e "NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co" \
-  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key" \
-  -e "DASHSCOPE_API_KEY=sk-你的dashscope_key" \
+  --env-file .env \
+  --restart unless-stopped \
   ghcr.io/writestone/ai-travel-planners:latest
 ```
 
-Windows PowerShell:
-```powershell
-docker run -d `
-  --name ai-travel-planner `
-  -p 3000:3000 `
-  -e "NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co" `
-  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key" `
-  -e "DASHSCOPE_API_KEY=sk-你的dashscope_key" `
-  ghcr.io/writestone/ai-travel-planners:latest
-```
+#### 2.3 验证运行状态
 
-Windows CMD:
-```cmd
-docker run -d ^
-  --name ai-travel-planner ^
-  -p 3000:3000 ^
-  -e "NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co" ^
-  -e "NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon_key" ^
-  -e "DASHSCOPE_API_KEY=sk-你的dashscope_key" ^
-  ghcr.io/writestone/ai-travel-planners:latest
-```
-
-### 4. 访问应用
-
-容器启动后，打开浏览器访问：
-
-```
-http://localhost:3000
-```
-
-### 5. 停止和管理容器
+运行以下命令检查容器是否正常启动：
 
 ```bash
-# 查看运行状态
+# 查看容器状态
 docker ps
 
-# 查看日志
+# 查看容器日志
+docker logs ai-travel-planner
+```
+
+**成功的标志：**
+- `docker ps` 显示容器状态为 `Up`
+- 日志中显示 `Ready started server on 0.0.0.0:3000`
+
+---
+
+### 🎉 第三步：开始使用（约1分钟）
+
+#### 3.1 访问应用
+
+1. 打开 **Microsoft Edge** 或 **Google Chrome** 浏览器
+2. 访问：http://localhost:3000
+3. 看到欢迎页面说明部署成功！
+
+#### 3.2 注册账号
+
+1. 点击页面上的 **"注册"** 按钮
+2. 输入邮箱和密码（密码至少 6 位）
+3. 点击 "注册" 完成
+4. 系统会自动登录并跳转到仪表板
+
+#### 3.3 创建第一个旅行计划
+
+1. 点击 **"创建计划"** 或 **"开始规划旅行"**
+2. 两种输入方式：
+
+   **方式A：语音输入（推荐）**
+   - 点击麦克风图标 🎤
+   - 允许浏览器使用麦克风（首次会提示）
+   - 说出你的旅行需求，例如：
+     > "我想去成都玩5天，预算8000元，喜欢美食和文化，两个人"
+   - AI 会自动识别并填充表单
+
+   **方式B：手动填写**
+   - 目的地：例如 "成都"
+   - 出发日期和返回日期：选择日期
+   - 预算：例如 "8000"
+   - 同行人数：例如 "2"
+   - 旅行偏好：勾选 "美食"、"文化" 等
+
+3. 点击 **"生成计划"** 按钮
+4. 等待 10-30 秒，AI 会生成详细的旅行规划，包括：
+   - 每日行程安排
+   - 景点推荐和时间
+   - 餐厅推荐（早中晚）
+   - 交通方式和费用
+   - 住宿建议
+   - 详细预算分析
+
+5. 查看地图和费用管理
+   - 切换到 "地图视图" 查看景点分布
+   - 切换到 "费用管理" 记录实际花费
+
+---
+
+### ✅ 功能验证清单
+
+完成以上步骤后，请验证以下功能：
+
+- [ ] ✅ 可以注册新账号
+- [ ] ✅ 可以登录/登出
+- [ ] ✅ 可以创建旅行计划
+- [ ] ✅ 语音识别功能正常（Edge/Chrome）
+- [ ] ✅ AI 能生成详细的旅行计划
+- [ ] ✅ 可以在地图上查看景点（如果配置了高德地图 key）
+- [ ] ✅ 可以记录和管理费用
+- [ ] ✅ 计划可以保存并在仪表板查看
+
+---
+
+### 🔧 常见问题解决
+
+#### Q1: 访问 localhost:3000 显示无法访问
+
+**解决方案：**
+```bash
+# 检查容器是否运行
+docker ps
+
+# 如果没有显示容器，查看所有容器（包括停止的）
+docker ps -a
+
+# 查看容器日志找错误
 docker logs ai-travel-planner
 
+# 重启容器
+docker restart ai-travel-planner
+```
+
+#### Q2: 注册时提示 "Failed to fetch" 或 404 错误
+
+**原因：** 环境变量配置错误
+
+**解决方案：**
+1. 停止并删除容器：
+   ```bash
+   docker stop ai-travel-planner
+   docker rm ai-travel-planner
+   ```
+
+2. 检查 `.env` 文件：
+   - 确保没有多余的空格
+   - 确保没有引号（不要加 `"` 或 `'`）
+   - 确保密钥完整（特别是 Supabase Anon Key 很长）
+
+3. 重新运行容器（使用上面的命令）
+
+4. 清除浏览器缓存：
+   - 按 `Ctrl + Shift + Delete`
+   - 选择 "缓存的图像和文件"
+   - 清除后刷新页面
+
+#### Q3: AI 生成失败或返回错误
+
+**解决方案：**
+- 检查阿里云百炼 API Key 是否正确
+- 登录阿里云百炼控制台查看是否还有免费额度
+- 查看容器日志：`docker logs ai-travel-planner`
+
+#### Q4: 语音识别不工作
+
+**解决方案：**
+- 确认使用 Edge 或 Chrome 浏览器
+- 检查浏览器是否允许麦克风权限
+- 确认系统麦克风设备正常工作
+- Firefox 和 Safari 不支持语音功能
+
+#### Q5: 端口 3000 被占用
+
+**解决方案：**
+使用其他端口（例如 3001）：
+```bash
+# Windows PowerShell
+docker run -d `
+  --name ai-travel-planner `
+  -p 3001:3000 `
+  --env-file .env `
+  ghcr.io/writestone/ai-travel-planners:latest
+
+# Mac/Linux
+docker run -d \
+  --name ai-travel-planner \
+  -p 3001:3000 \
+  --env-file .env \
+  ghcr.io/writestone/ai-travel-planners:latest
+```
+然后访问：http://localhost:3001
+
+---
+
+### 🛑 停止和管理容器
+
+```bash
 # 停止容器
 docker stop ai-travel-planner
 
 # 启动容器
 docker start ai-travel-planner
 
-# 删除容器
+# 重启容器
+docker restart ai-travel-planner
+
+# 查看日志
+docker logs ai-travel-planner
+
+# 查看最新 50 行日志
+docker logs ai-travel-planner --tail 50
+
+# 实时查看日志
+docker logs -f ai-travel-planner
+
+# 删除容器（数据会丢失）
+docker stop ai-travel-planner
 docker rm ai-travel-planner
+
+# 更新到最新版本
+docker pull ghcr.io/writestone/ai-travel-planners:latest
+docker stop ai-travel-planner
+docker rm ai-travel-planner
+# 然后重新运行上面的 docker run 命令
 ```
 
-## 📖 使用指南
+---
 
-### 首次使用
+### 💡 高级配置（可选）
 
-1. **注册账号**
-   - 打开应用后点击"注册"
-   - 输入邮箱和密码完成注册
-   - 登录后自动进入仪表板
+#### 添加高德地图支持（可选）
 
-2. **创建旅行计划**
-   - 点击"创建计划"按钮
-   - 填写旅行信息：
-     - 目的地（必填）
-     - 出发和返回日期
-     - 预算金额
-     - 同行人数
-     - 旅行偏好（美食、购物、文化等）
+如果你想启用地图可视化功能：
 
-3. **使用语音输入（推荐）**
-   - 点击麦克风图标开始语音输入
-   - 说出你的旅行需求，例如：
-     > "我想去成都玩5天，预算8000元，喜欢美食和文化，3个人"
-   - AI 会自动识别并填充表单
-   - 点击"生成计划"
+1. 访问 https://console.amap.com/
+2. 注册并创建应用
+3. 获取 Web 端 JS API Key
+   ```
+5. 重新启动容器
 
-4. **查看 AI 生成的行程**
-   - AI 会生成包含以下内容的详细行程：
-     - 每日景点安排和时间
-     - 交通方式和费用
-     - 餐厅推荐（早中晚）
-     - 住宿建议
-     - 详细预算分析
-   - 可以在地图上查看路线
-   - 保存计划到云端
+---
 
-5. **费用管理**
-   - 在旅行中记录实际花费
-   - 使用语音快速记账
-   - 查看预算vs实际对比
-   - 自动分类统计
+---
 
-### 主要功能说明
+### 🎯 主要功能介绍
 
 #### 🗣️ 语音识别
 - 支持中文语音输入
