@@ -74,6 +74,9 @@ export interface MealSuggestion {
   cuisine: string
   location: string
   estimatedCost: number
+  time?: string
+  specialties?: string[]
+  description?: string
 }
 
 export interface AccommodationSuggestion {
