@@ -49,6 +49,7 @@ export interface Itinerary {
   accommodation: AccommodationSuggestion[]
   transportation: TransportationInfo
   estimatedCosts: CostBreakdown
+  tips?: string[]
 }
 
 export interface DayPlan {
